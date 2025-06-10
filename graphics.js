@@ -63,6 +63,7 @@ function initFilters() {
 
     const minLosInput = document.getElementById('minLos');
     const maxLosInput = document.getElementById('maxLos');
+    const losValue = document.getElementById('losValue');
 
 
     minLosInput.addEventListener('change', function() {
@@ -99,27 +100,24 @@ function applyFilters() {
     const maxLos = parseFloat(document.getElementById('maxLos').value);
     
     const selectedLocations = [];
-    document.querySelectorAll('.discharge-location-filter:checked').forEach(checkbox => {
+    document.querySelectorAll('.discharge-location-filter:not(#filterAllLocations):checked').forEach(checkbox => {
         selectedLocations.push(checkbox.nextElementSibling.textContent);
     });
 
     filteredData = allData.filter(patient => {
+
         const genderFilter = 
             (showMale && patient.gender === 'M') || 
             (showFemale && patient.gender === 'F');
-        if (!genderFilter) return false;
         
         const ageFilter = patient.age >= minAge && patient.age <= maxAge;
-        if (!ageFilter) return false;
 
         const losFilter = patient.los >= minLos && patient.los <= maxLos;
-        if (!losFilter) return false;
         
-        // Si no hay ubicaciones seleccionadas, incluir todos los pacientes
-        if (selectedLocations.length === 0) return true;
+        const locationFilter = selectedLocations.length === 0 || 
+                             (patient.discharge_location && selectedLocations.includes(patient.discharge_location));
         
-        // Si hay ubicaciones seleccionadas, solo incluir pacientes con esas ubicaciones
-        return patient.discharge_location && selectedLocations.includes(patient.discharge_location);
+        return genderFilter && ageFilter && losFilter && locationFilter;
     });
     
     document.getElementById('numPatients').textContent =
@@ -498,13 +496,16 @@ function getOutcomeChartConfig(data) {
 function updateDischargeLocationFilters() {
     const uniqueLocations = [...new Set(allData.map(patient => patient.discharge_location))].filter(Boolean);
     const container = document.getElementById('dischargeLocationFilters');
+
+    const allLocationsCheckbox = document.getElementById('filterAllLocations');
     container.innerHTML = '';
+    container.appendChild(allLocationsCheckbox.parentElement);
 
     uniqueLocations.forEach(location => {
         const div = document.createElement('div');
         div.className = 'form-check';
         div.innerHTML = `
-            <input class="form-check-input discharge-location-filter" type="checkbox" id="filterLocation_${location}">
+            <input class="form-check-input discharge-location-filter" type="checkbox" id="filterLocation_${location}" checked>
             <label class="form-check-label" for="filterLocation_${location}">${location}</label>
         `;
         container.appendChild(div);
@@ -523,10 +524,10 @@ function resetFilters() {
     document.getElementById('minLos').value = 0;
     document.getElementById('maxLos').value = 30;
     
-    document.querySelectorAll('.discharge-location-filter').forEach(checkbox => {
-        checkbox.checked = false;
+    document.getElementById('filterAllLocations').checked = true;
+    document.querySelectorAll('.discharge-location-filter:not(#filterAllLocations)').forEach(checkbox => {
+        checkbox.checked = true;
     });
     
     applyFilters();
 }
-
