@@ -63,7 +63,6 @@ function initFilters() {
 
     const minLosInput = document.getElementById('minLos');
     const maxLosInput = document.getElementById('maxLos');
-    const losValue = document.getElementById('losValue');
 
 
     minLosInput.addEventListener('change', function() {
