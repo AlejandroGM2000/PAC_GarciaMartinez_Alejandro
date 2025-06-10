@@ -2,29 +2,9 @@ let allData = [];
 let filteredData = [];
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Verifica que todos los elementos del DOM existan
-    if (!document.getElementById('sidebarToggle') || 
-        !document.getElementById('numPatients') ||
-        !document.getElementById('genderChart') ||
-        !document.getElementById('ageChart') ||
-        !document.getElementById('losChart') ||
-        !document.getElementById('outcomeChart')) {
-        console.error('Error: Faltan elementos esenciales en el DOM');
-        return;
-    }
-
     fetch('synthetic_data.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
-            if (!data || data.length === 0) {
-                throw new Error('Los datos están vacíos o no son válidos');
-            }
-            
             allData = data;
             filteredData = [...data];
 
@@ -36,24 +16,12 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error al cargar los datos:', error);
-            const errorElement = document.createElement('div');
-            errorElement.style.color = 'red';
-            errorElement.style.padding = '20px';
-            errorElement.style.textAlign = 'center';
-            errorElement.innerHTML = `<h3>Error al cargar los datos</h3><p>${error.message}</p>`;
-            document.body.prepend(errorElement);
-        });
-
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function() {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) {
-                sidebar.classList.toggle('active');
-            }
-        });
-    }
+        });        
+    document.getElementById('sidebarToggle').addEventListener('click', function() {
+        document.getElementById('sidebar').classList.toggle('active');
+    });
 });
+
 function initCharts() {
     Highcharts.chart('genderChart', getGenderChartConfig([]));
     Highcharts.chart('ageChart', getAgeChartConfig([]));
