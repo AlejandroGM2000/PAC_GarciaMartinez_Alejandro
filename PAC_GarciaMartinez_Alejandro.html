@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas de Pacientes UCI</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/highcharts-more.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --primary-color: #3498db;
+            --dark-color: #2c3e50;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: all 0.3s;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 20px;
+        }
+        
+        .sidebar-title {
+            color: var(--dark-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            transition: all 0.3s;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            height: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 15px;
+            color: var(--dark-color);
+        }
+        
+        .chart {
+            height: 450px;
+            min-width: 100%;
+        }
+        
+        .main-title {
+            color: var(--dark-color);
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .filter-section {
+            margin-bottom: 25px;
+        }
+        
+        .filter-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-check-label {
+            font-size: 14px;
+        }
+        
+        .btn-apply {
+            background-color: var(--primary-color);
+            border: none;
+            width: 100%;
+            padding: 10px;
+            font-weight: 500;
+        }
+        
+        .btn-apply:hover {
+            background-color: #2980b9;
+        }
+
+        #resetFilters {
+            margin-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .d-flex.justify-content-between {
+                flex-direction: column;
+            }
+            #resetFilters {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: block !important;
+            }
+        }
+        
+        .sidebar-toggle {
+            position: fixed;
+            left: 15px;
+            top: 15px;
+            z-index: 1100;
+            display: none;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+        }
+
+        #dischargeLocationFilters {
+        max-height: 200px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+        border: 1px solid #eee;
+        padding: 5px 10px;
+        border-radius: 4px;
+    }
+
+        .discharge-location-filter {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="fas fa-filter"></i>
+    </button>
+    
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3 class="sidebar-title">
+                <i class="fas fa-sliders-h"></i> Filtros
+            </h3>
+        </div>
+        
+        <div class="filter-section">
+            <h4 class="filter-title">
+                <i class="fas fa-venus-mars"></i> Sexo
+            </h4>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="filterMale" checked>
+                <label class="form-check-label" for="filterMale">Hombres</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="filterFemale" checked>
+                <label class="form-check-label" for="filterFemale">Mujeres</label>
+            </div>
+        </div>
+        
+        <div class="filter-section">
+            <h4 class="filter-title">
+                <i class="fas fa-user-clock"></i> Rango de Edad
+            </h4>
+            <div class="mb-3">
+                <label for="ageRange" class="form-label">Edad: <span id="ageValue">18-100</span></label>
+                <input type="range" class="form-range" min="18" max="100" step="1" id="ageRange" value="100">
+            </div>
+            <div class="row">
+                <div class="col">
+                    <label for="minAge" class="form-label">Mínimo</label>
+                    <input type="number" class="form-control" id="minAge" min="18" max="100" value="18">
+                </div>
+                <div class="col">
+                    <label for="maxAge" class="form-label">Máximo</label>
+                    <input type="number" class="form-control" id="maxAge" min="18" max="100" value="100">
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h4 class="filter-title">
+                <i class="fas fa-hospital-alt"></i> Días de Estancia
+            </h4>
+            <div class="row">
+                <div class="col">
+                    <label for="minLos" class="form-label">Mínimo</label>
+                    <input type="number" class="form-control" id="minLos" min="0" max="30" step="0.5" value="0">
+                </div>
+                <div class="col">
+                    <label for="maxLos" class="form-label">Máximo</label>
+                    <input type="number" class="form-control" id="maxLos" min="0" max="30" step="0.5" value="30">
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h4 class="filter-title">
+                <i class="fas fa-map-marker-alt"></i> Ubicación de Alta
+            </h4>
+            <div id="dischargeLocationFilters">
+                <div class="form-check">
+                    <input class="form-check-input discharge-location-filter" type="checkbox" id="filterAllLocations" checked>
+                    <label class="form-check-label" for="filterAllLocations">Todas las ubicaciones</label>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between mt-3">
+            <button class="btn btn-primary btn-apply" id="applyFilters">
+                <i class="fas fa-sync-alt me-2"></i>Aplicar Filtros
+            </button>
+            <button class="btn btn-outline-secondary" id="resetFilters">
+                <i class="fas fa-undo me-2"></i>Reset
+            </button>
+        </div>
+    </div>
+    
+    <div class="main-content" id="mainContent">
+        <div class="container-fluid">
+            <h1 class="main-title">Dashboard sintético: Medical Intensive Care Unit</h1>
+            <h3 class="section-title text-center mb-2" style="font-size: 0.9rem; font-weight: normal; line-height: 1.4;">
+                Este dashboard muestra datos demográficos y clínicos sintéticos generados a partir de la unidad Medical Intensive Care Unit (MICU) del Beth Israel Deaconess Medical Center.  
+                Los datos fueron sintetizados utilizando un modelo SDV de alto realismo, entrenado con los datos de MICU (sexo, edad, estancia, outcome) del repositorio MIMIC-IV v2.2 (2008–2019).  
+                Las visualizaciones se han realizado con la librería Highcharts.
+            </h3>
+
+            <hr class="divider" />
+
+            <h4 class="section-title text-center mb-2">¿Cuántos pacientes ha atendido la MICU?</h4>
+
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class=" chart-container d-flex justify-content-center align-items-center gap-2">
+                        <i class="fas fa-user-injured fa-2x" style="color: var(--primary-color);"></i>
+                        <span id="numPatients" style="font-weight: 600; font-size: 1.1rem; color: var(--dark-color);">
+                            Pacientes atendidos entre 2008 y 2019
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <hr class="divider" />
+
+            <h4 class="section-title text-center mb-2">¿Qué pacientes ha atendido la MICU? Estudio demográfico</h4>
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <div class="chart-container" style="height: 400px">
+                        <div class="chart-title">Distribución por Género</div>
+                        <div id="genderChart" class="chart"></div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="chart-container" style="height: 400px">
+                        <div class="chart-title">Distribución de Edades</div>
+                        <div id="ageChart" class="chart"></div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="divider" />
+
+            <h4 class="section-title text-center mb-2">¿Cuánto tiempo han permanecido los pacientes en la MICU?</h4>
+            <div class="row g-4 mb-4" style="min-height: 400px;">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <div class="chart-title">Distribución de la Estancia</div>
+                        <div id="losChart" class="chart"></div>
+                    </div>
+                </div>
+            </div>
+            <hr class="divider" />
+            <h4 class="section-title text-center mb-2">¿Cual ha sido el outcome de los pacientes?</h4>
+            <div class="row g-4 mb-4" style="min-height: 400px;">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <div class="chart-title">Distribución de la Estancia</div>
+                        <div id="outcomeChart" class="chart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="graphics.js"></script>
+</body>
+</html>
